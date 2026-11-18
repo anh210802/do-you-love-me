@@ -95,7 +95,7 @@
 
     <!-- Thẻ Audio sử dụng link nhạc mẫu (có thể thay đổi link src thành file nhạc mp3 của bạn) -->
     <audio id="bgMusic" loop>
-        <source src="https://www.bensound.com/bensound-music/bensound-cute.mp3" type="audio/mpeg">
+        <source src="love-me.mp3" type="audio/mpeg">
         Trình duyệt của bạn không hỗ trợ thẻ audio.
     </audio>
 
@@ -374,7 +374,7 @@
             `;
 
             // Đổi sang bài "Yes I Do" khi bấm nút Có
-            bgMusic.src = "https://www.bensound.com/bensound-music/bensound-tenderness.mp3"; // Có thể thay link bài "Yes I Do" vào đây
+            bgMusic.src = "i-do-end.mp3"; // Có thể thay link bài "Yes I Do" vào đây
             bgMusic.play().catch(e => console.log("Không thể tự phát nhạc mới"));
 
             if (mode !== 'loveRain') {
