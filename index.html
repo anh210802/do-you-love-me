@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bạn có yêu tôi không?</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #fce4ec;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.8s ease;
+        }
+
+        /* Canvas hiệu ứng lá rơi ban đầu và mưa trái tim sau khi bấm Có */
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+            max-width: 400px;
+            width: 90%;
+            transition: all 0.5s ease;
+        }
+
+        .cat-img {
+            width: 150px;
+            height: 150px;
+            object-fit: contain;
+            margin-bottom: 20px;
+            border-radius: 12px;
+        }
+
+        h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            min-height: 60px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #yesBtn {
+            background-color: #ff4081;
+            color: white;
+            z-index: 10;
+        }
+
+        #noBtn {
+            background-color: #b0bec5;
+            color: white;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bgCanvas"></canvas>
+
+    <!-- Thẻ Audio sử dụng link nhạc mẫu (có thể thay đổi link src thành file nhạc mp3 của bạn) -->
+    <audio id="bgMusic" loop>
+        <source src="https://www.bensound.com/bensound-music/bensound-cute.mp3" type="audio/mpeg">
+        Trình duyệt của bạn không hỗ trợ thẻ audio.
+    </audio>
+
+    <div class="container" id="mainCard">
+        <img id="catImg" class="cat-img" src="https://th.bing.com/th/id/OIP.xouLfP7oE_4-RBJdblEd_gHaEK?w=267&h=180&c=7&r=0&o=7&pid=1.7&rm=3" alt="Cute cat">
+        
+        <h2 id="question">Bạn có yêui toiii khôngggg</h2>
+        
+        <div class="buttons" id="buttonGroup">
+            <button id="yesBtn">Có</button>
+            <button id="noBtn">Không</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        const bgMusic = document.getElementById('bgMusic');
+
+        // Tự động kích hoạt phát nhạc khi có tương tác đầu tiên trên trang
+        document.body.addEventListener('click', function() {
+            if (bgMusic.paused) {
+                bgMusic.play().catch(e => console.log("Chờ tương tác để phát nhạc"));
+            }
+        }, { once: true });
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        let mode = 'leaves'; 
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        // ==========================================
+        // 1. HIỆU ỨNG LÁ / CÁNH HOA RƠI BAN ĐẦU
+        // ==========================================
+        const leafColors = [
+            "rgba(255, 138, 174, 0.75)",
+            "rgba(255, 179, 198, 0.85)",
+            "rgba(255, 92, 138, 0.65)",
+            "rgba(244, 143, 177, 0.8)"
+        ];
+
+        const leaves = Array.from({ length: 45 }, () => createLeaf(true));
+
+        function createLeaf(initial = false) {
+            return {
+                x: Math.random() * width,
+                y: initial ? Math.random() * height : -30,
+                size: 8 + Math.random() * 10,
+                speedY: 1 + Math.random() * 1.5,
+                speedX: (Math.random() - 0.5) * 1.2,
+                swayAmp: 0.5 + Math.random() * 1.5,
+                swayFreq: 0.01 + Math.random() * 0.02,
+                angle: Math.random() * Math.PI * 2,
+                spin: (Math.random() - 0.5) * 0.04,
+                tick: Math.random() * 100,
+                color: leafColors[Math.floor(Math.random() * leafColors.length)]
+            };
+        }
+
+        function drawLeaf(leaf) {
+            ctx.save();
+            ctx.translate(leaf.x, leaf.y);
+            ctx.rotate(leaf.angle);
+            ctx.fillStyle = leaf.color;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, -leaf.size);
+            ctx.bezierCurveTo(leaf.size, -leaf.size * 0.4, leaf.size, leaf.size * 0.4, 0, leaf.size);
+            ctx.bezierCurveTo(-leaf.size, leaf.size * 0.4, -leaf.size, -leaf.size * 0.4, 0, -leaf.size);
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, -leaf.size * 0.7);
+            ctx.lineTo(0, leaf.size * 0.7);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function updateAndDrawLeaves() {
+            ctx.clearRect(0, 0, width, height);
+            for (let i = 0; i < leaves.length; i++) {
+                const leaf = leaves[i];
+                leaf.tick++;
+                leaf.y += leaf.speedY;
+                leaf.x += leaf.speedX + Math.sin(leaf.tick * leaf.swayFreq) * leaf.swayAmp;
+                leaf.angle += leaf.spin;
+
+                drawLeaf(leaf);
+
+                if (leaf.y > height + 30 || leaf.x < -50 || leaf.x > width + 50) {
+                    leaves[i] = createLeaf(false);
+                }
+            }
+        }
+
+        // ==========================================
+        // 2. HIỆU ỨNG TRÁI TIM RƠI & SAO LẤP LÁNH
+        // ==========================================
+        const words = ["I Love You ♡", "Yêu cậu nhiều", "Mãi bên nhau nhé", "My Sunshine", "Forever ♥", "Thương cậu"];
+        const heartColors = [
+            { fill: "#ff4d6d", shadow: "#ff4d6d" },
+            { fill: "#ff758f", shadow: "#ff758f" },
+            { fill: "#ff8fa3", shadow: "#ffb3c1" },
+            { fill: "#c9184a", shadow: "#ff4d6d" }
+        ];
+        const loadedImages = [];
+
+        const stars = Array.from({ length: 300 }, () => ({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            size: 0.8 + Math.random() * 2.2,
+            alpha: Math.random(),
+            twinkleSpeed: 0.01 + Math.random() * 0.03
+        }));
+
+        const items = [];
+        const totalItems = 180;
+
+        function createItem(initial = false) {
+            const rand = Math.random();
+            let type = 'text';
+            
+            if (rand > 0.90 && loadedImages.length > 0) {
+                type = 'image';
+            } else if (rand > 0.35) {
+                type = 'heart';
+            }
+
+            const z = 0.3 + Math.random() * 1.4; 
+            return {
+                type: type,
+                x: (Math.random() - 0.5) * width * 1.8,
+                y: initial ? (Math.random() - 0.5) * height * 1.5 : -height * 0.8,
+                z: z,
+                speed: (1.2 + Math.random() * 1.8) * z,
+                word: words[Math.floor(Math.random() * words.length)],
+                img: loadedImages.length > 0 ? loadedImages[Math.floor(Math.random() * loadedImages.length)] : null,
+                heartColor: heartColors[Math.floor(Math.random() * heartColors.length)],
+                size: type === 'heart' ? (14 + Math.random() * 24) : (16 + Math.random() * 8)
+            };
+        }
+
+        function initItems() {
+            items.length = 0;
+            for (let i = 0; i < totalItems; i++) {
+                items.push(createItem(true));
+            }
+        }
+
+        function drawHeart(x, y, size, colorObj) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.fillStyle = colorObj.fill;
+            ctx.shadowColor = colorObj.shadow;
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            const topCurveHeight = size * 0.3;
+            ctx.moveTo(0, topCurveHeight);
+            ctx.bezierCurveTo(0, 0, -size / 2, 0, -size / 2, topCurveHeight);
+            ctx.bezierCurveTo(-size / 2, (size + topCurveHeight) / 2, 0, (size + topCurveHeight) / 1.3, 0, size);
+            ctx.bezierCurveTo(0, (size + topCurveHeight) / 1.3, size / 2, (size + topCurveHeight) / 2, size / 2, topCurveHeight);
+            ctx.bezierCurveTo(size / 2, 0, 0, 0, 0, topCurveHeight);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function updateAndDrawLoveRain() {
+            ctx.fillStyle = "#060612";
+            ctx.fillRect(0, 0, width, height);
+
+            stars.forEach(star => {
+                star.alpha += star.twinkleSpeed;
+                if (star.alpha > 1 || star.alpha < 0.1) {
+                    star.twinkleSpeed = -star.twinkleSpeed;
+                }
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.1, Math.min(1, star.alpha))})`;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            items.sort((a, b) => a.z - b.z);
+
+            ctx.save();
+            ctx.translate(width / 2, height / 2);
+            ctx.rotate(-0.15);
+
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const scale = item.z;
+                const drawX = item.x * scale;
+                const drawY = item.y * scale;
+
+                ctx.save();
+                ctx.translate(drawX, drawY);
+                ctx.scale(scale, scale);
+
+                if (item.type === 'text') {
+                    ctx.font = `600 ${item.size}px 'Segoe UI', sans-serif`;
+                    ctx.fillStyle = "#ffffff";
+                    ctx.shadowColor = "#ff758f";
+                    ctx.shadowBlur = 12;
+                    ctx.fillText(item.word, 0, 0);
+                } 
+                else if (item.type === 'heart') {
+                    drawHeart(0, 0, item.size, item.heartColor);
+                } 
+
+                ctx.restore();
+
+                item.y += item.speed;
+
+                if (item.y * scale > height * 0.85) {
+                    items[i] = createItem(false);
+                }
+            }
+
+            ctx.restore();
+        }
+
+        function mainLoop() {
+            if (mode === 'leaves') {
+                updateAndDrawLeaves();
+            } else {
+                updateAndDrawLoveRain();
+            }
+            requestAnimationFrame(mainLoop);
+        }
+        mainLoop();
+
+        // ==========================================
+        // 3. XỬ LÝ SỰ KIỆN NÚT BẤM & ĐỔI NHẠC
+        // ==========================================
+        const noMessages = [
+            "Không",
+            "Bạn chiếm tức chứ...",
+            "Nghĩ lại đi mà?",
+            "Không được chọn cái này!",
+            "Mình sẽ buồn lắm đó..."
+        ];
+
+        let clickCount = 0;
+        const yesBtn = document.getElementById('yesBtn');
+        const noBtn = document.getElementById('noBtn');
+        const mainCard = document.getElementById('mainCard');
+
+        noBtn.addEventListener('click', function() {
+            clickCount++;
+            if (clickCount < noMessages.length) {
+                noBtn.innerText = noMessages[clickCount];
+            } else {
+                noBtn.innerText = "Hết đường chạy rồi nha :3";
+            }
+
+            let currentScale = 1 + clickCount * 0.3;
+            yesBtn.style.transform = `scale(${currentScale})`;
+        });
+
+        yesBtn.addEventListener('click', function() {
+            document.body.style.backgroundColor = "#060612";
+            mainCard.style.background = "rgba(255, 255, 255, 0.12)";
+            mainCard.style.backdropFilter = "blur(10px)";
+            mainCard.style.border = "1px solid rgba(255, 255, 255, 0.25)";
+            
+            mainCard.innerHTML = `
+                <img class="cat-img" src="https://media.giphy.com/media/MDJ9IbxxvDUQM/giphy.gif" alt="Love cats">
+                <h2 style="color: #fff; text-shadow: 0 0 10px #ff4081;">Tôi biết sẽ như vậy mà (>. <)♡</h2>
+            `;
+
+            // Đổi sang bài "Yes I Do" khi bấm nút Có
+            bgMusic.src = "https://www.bensound.com/bensound-music/bensound-tenderness.mp3"; // Có thể thay link bài "Yes I Do" vào đây
+            bgMusic.play().catch(e => console.log("Không thể tự phát nhạc mới"));
+
+            if (mode !== 'loveRain') {
+                initItems();
+                mode = 'loveRain';
+            }
+        });
+    </script>
+</body>
+</html>
