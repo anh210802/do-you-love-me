@@ -5,20 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bạn có yêu tôi không?</title>
     <style>
-        body {
+        body, html {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
             background-color: #fce4ec;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            overflow: hidden;
             transition: background-color 0.8s ease;
         }
 
-        /* Canvas hiệu ứng lá rơi ban đầu và mưa trái tim sau khi bấm Có */
+        /* Canvas hiệu ứng nền (Lá rơi -> Mưa ảnh & mưa trái tim) */
         #bgCanvas {
             position: fixed;
             top: 0;
@@ -29,6 +30,7 @@
             pointer-events: none;
         }
 
+        /* Khung câu hỏi chính ban đầu */
         .container {
             position: relative;
             z-index: 10;
@@ -37,7 +39,7 @@
             backdrop-filter: blur(8px);
             padding: 40px;
             border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
             max-width: 400px;
             width: 90%;
             transition: all 0.5s ease;
@@ -87,22 +89,97 @@
             color: white;
             position: relative;
         }
+
+        /* Màn hình mở quà (Hiện ra sau khi bấm Có) */
+        #gift-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(3, 3, 8, 0.85);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+        }
+
+        #gift-screen.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #gift-screen.opened {
+            opacity: 0;
+            transform: scale(1.3);
+            pointer-events: none;
+            transition: opacity 1s ease, transform 1s ease;
+        }
+
+        .gift-box {
+            font-size: 95px;
+            cursor: pointer;
+            user-select: none;
+            filter: drop-shadow(0 0 25px rgba(255, 77, 136, 0.8));
+            animation: bounceGift 1.5s infinite ease-in-out;
+            transition: transform 0.2s;
+        }
+
+        .gift-box:hover {
+            transform: scale(1.15);
+        }
+
+        .gift-title {
+            margin-top: 25px;
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+            text-shadow: 0 0 12px #ff4d88, 0 0 25px #ff1a66;
+            padding: 0 20px;
+        }
+
+        .gift-sub {
+            margin-top: 10px;
+            color: #ffb3cc;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            animation: blinkText 1.5s infinite alternate;
+        }
+
+        @keyframes bounceGift {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-12px) rotate(-6deg); }
+            50% { transform: translateY(0) rotate(0deg); }
+            75% { transform: translateY(-8px) rotate(6deg); }
+        }
+
+        @keyframes blinkText {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
+        }
     </style>
 </head>
 <body>
 
     <canvas id="bgCanvas"></canvas>
 
-    <!-- Thẻ Audio sử dụng link nhạc mẫu (có thể thay đổi link src thành file nhạc mp3 của bạn) -->
+    <!-- Nhạc nền -->
     <audio id="bgMusic" loop>
-        <source src="your-name.mp3" type="audio/mpeg">
+        <source src="do-you-love-me.mp3" type="audio/mpeg">
         Trình duyệt của bạn không hỗ trợ thẻ audio.
     </audio>
 
+    <!-- Giao diện câu hỏi tỏ tình -->
     <div class="container" id="mainCard">
         <img id="catImg" class="cat-img" src="https://th.bing.com/th/id/OIP.xouLfP7oE_4-RBJdblEd_gHaEK?w=267&h=180&c=7&r=0&o=7&pid=1.7&rm=3" alt="Cute cat">
         
-        <h2 id="question">Bạn có yêu toiii khôngggg  </h2>
+        <h2 id="question">Bạn có yêu toiii khôngggg</h2>
         
         <div class="buttons" id="buttonGroup">
             <button id="yesBtn">Có</button>
@@ -110,12 +187,22 @@
         </div>
     </div>
 
+    <!-- Màn hình mở quà -->
+    <div id="gift-screen">
+        <div class="gift-box" id="openBtn">🎁</div>
+        <div class="gift-title">Tôi biết sẽ như vậy mà (>. <)♡<br>Gửi Phương Anh một món quà nhỏ 🤍</div>
+        <div class="gift-sub">Chạm vào hộp quà để mở nhé!</div>
+    </div>
+
     <script>
+        const mainCard = document.getElementById('mainCard');
+        const giftScreen = document.getElementById('gift-screen');
+        const openBtn = document.getElementById('openBtn');
         const canvas = document.getElementById('bgCanvas');
         const ctx = canvas.getContext('2d');
         const bgMusic = document.getElementById('bgMusic');
 
-        // Tự động kích hoạt phát nhạc khi có tương tác đầu tiên trên trang
+        // Tự động phát nhạc khi có tương tác đầu tiên
         document.body.addEventListener('click', function() {
             if (bgMusic.paused) {
                 bgMusic.play().catch(e => console.log("Chờ tương tác để phát nhạc"));
@@ -132,7 +219,24 @@
         });
 
         // ==========================================
-        // 1. HIỆU ỨNG LÁ / CÁNH HOA RƠI BAN ĐẦU
+        // 1. TÙY CHỈNH LINK ẢNH RƠI TẠI ĐÂY
+        // (Bạn có thể thay thế bằng link ảnh của bạn hoặc tên file ảnh trong cùng thư mục)
+        // ==========================================
+        const imageUrls = [
+            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS3hph3Vpwjd0xzkXL64FnWuHd00oOCH0SoYnmffJeFtA&s=10",
+            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnkmqoEfJFEFgVpsj1mMwpUfT63vtIeWIKbDGCmugHew&s=10",
+            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQVx1mKYsviOg4YAstsYXAjARhacOzgM3ufCzFSE62aQ&s=10"
+        ];
+
+        const loadedImages = [];
+        imageUrls.forEach(url => {
+            const img = new Image();
+            img.src = url;
+            img.onload = () => loadedImages.push(img);
+        });
+
+        // ==========================================
+        // 2. HIỆU ỨNG LÁ RƠI BAN ĐẦU
         // ==========================================
         const leafColors = [
             "rgba(255, 138, 174, 0.75)",
@@ -164,20 +268,11 @@
             ctx.translate(leaf.x, leaf.y);
             ctx.rotate(leaf.angle);
             ctx.fillStyle = leaf.color;
-            
             ctx.beginPath();
             ctx.moveTo(0, -leaf.size);
             ctx.bezierCurveTo(leaf.size, -leaf.size * 0.4, leaf.size, leaf.size * 0.4, 0, leaf.size);
             ctx.bezierCurveTo(-leaf.size, leaf.size * 0.4, -leaf.size, -leaf.size * 0.4, 0, -leaf.size);
             ctx.fill();
-
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(0, -leaf.size * 0.7);
-            ctx.lineTo(0, leaf.size * 0.7);
-            ctx.stroke();
-
             ctx.restore();
         }
 
@@ -199,16 +294,15 @@
         }
 
         // ==========================================
-        // 2. HIỆU ỨNG TRÁI TIM RƠI & SAO LẤP LÁNH
+        // 3. HIỆU ỨNG MƯA ẢNH, TRÁI TIM & SAO 3D (SAU KHI MỞ QUÀ)
         // ==========================================
-        const words = ["I Love You ♡", "Yêu cậu nhiều", "Mãi bên nhau nhé", "My Sunshine", "Forever ♥", "Thương cậu"];
+        const words = ["Yêu Phương Anh", "Yêu em", "Mãi iu", "Phương Anh 🤍", "Love You", "Thương em"];
         const heartColors = [
             { fill: "#ff4d6d", shadow: "#ff4d6d" },
             { fill: "#ff758f", shadow: "#ff758f" },
             { fill: "#ff8fa3", shadow: "#ffb3c1" },
             { fill: "#c9184a", shadow: "#ff4d6d" }
         ];
-        const loadedImages = [];
 
         const stars = Array.from({ length: 300 }, () => ({
             x: Math.random() * width,
@@ -225,9 +319,10 @@
             const rand = Math.random();
             let type = 'text';
             
-            if (rand > 0.90 && loadedImages.length > 0) {
+            // Tỉ lệ xuất hiện: ~15% Ảnh, ~45% Trái tim, ~40% Chữ
+            if (rand > 0.85 && loadedImages.length > 0) {
                 type = 'image';
-            } else if (rand > 0.35) {
+            } else if (rand > 0.40) {
                 type = 'heart';
             }
 
@@ -271,7 +366,7 @@
         }
 
         function updateAndDrawLoveRain() {
-            ctx.fillStyle = "#060612";
+            ctx.fillStyle = "#030308";
             ctx.fillRect(0, 0, width, height);
 
             stars.forEach(star => {
@@ -310,7 +405,17 @@
                 } 
                 else if (item.type === 'heart') {
                     drawHeart(0, 0, item.size, item.heartColor);
-                } 
+                }
+                else if (item.type === 'image' && item.img) {
+                    const imgW = 90;
+                    const imgH = 115;
+                    ctx.shadowColor = "#ffffff";
+                    ctx.shadowBlur = 12;
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+                    ctx.lineWidth = 2;
+                    ctx.drawImage(item.img, -imgW / 2, -imgH / 2, imgW, imgH);
+                    ctx.strokeRect(-imgW / 2, -imgH / 2, imgW, imgH);
+                }
 
                 ctx.restore();
 
@@ -335,12 +440,14 @@
         mainLoop();
 
         // ==========================================
-        // 3. XỬ LÝ SỰ KIỆN NÚT BẤM & ĐỔI NHẠC
+        // 4. SỰ KIỆN TƯƠNG TÁC
         // ==========================================
         const noMessages = [
             "Không",
-            "Bạn chiếm tức chứ...",
+            "Cho suy nghĩ lại",
+            "Bạn nghiêm túc chứ...",
             "Nghĩ lại đi mà?",
+            "Em sẽ hối hận đấy!",
             "Không được chọn cái này!",
             "Mình sẽ buồn lắm đó..."
         ];
@@ -348,7 +455,6 @@
         let clickCount = 0;
         const yesBtn = document.getElementById('yesBtn');
         const noBtn = document.getElementById('noBtn');
-        const mainCard = document.getElementById('mainCard');
 
         noBtn.addEventListener('click', function() {
             clickCount++;
@@ -363,18 +469,29 @@
         });
 
         yesBtn.addEventListener('click', function() {
-            document.body.style.backgroundColor = "#060612";
-            mainCard.style.background = "rgba(255, 255, 255, 0.12)";
-            mainCard.style.backdropFilter = "blur(10px)";
-            mainCard.style.border = "1px solid rgba(255, 255, 255, 0.25)";
-            
-            mainCard.innerHTML = `
+            mainCard.style.display = 'none';
+            giftScreen.classList.add('active');
+        });
+
+        openBtn.addEventListener('click', () => {
+            giftScreen.classList.add('opened');
+            document.body.style.backgroundColor = "#030308";
+
+            const finalCard = document.createElement('div');
+            finalCard.className = 'container';
+            finalCard.style.display = 'block';
+            finalCard.style.background = 'rgba(255, 255, 255, 0.12)';
+            finalCard.style.backdropFilter = 'blur(10px)';
+            finalCard.style.border = '1px solid rgba(255, 255, 255, 0.25)';
+            finalCard.innerHTML = `
                 <img class="cat-img" src="https://media.giphy.com/media/MDJ9IbxxvDUQM/giphy.gif" alt="Love cats">
                 <h2 style="color: #fff; text-shadow: 0 0 10px #ff4081;">Tôi biết sẽ như vậy mà (>. <)♡</h2>
+                <h2 style="color: #fff; text-shadow: 0 0 10px #ff4081; font-size: 22px; margin-top: 10px;">Mở block cho anh đi !!!</h2>
             `;
+            document.body.appendChild(finalCard);
 
-            // Đổi sang bài "Yes I Do" khi bấm nút Có
-            bgMusic.src = "i-do-end.mp3"; // Có thể thay link bài "Yes I Do" vào đây
+            // Đổi sang bài "Yes I Do"
+            bgMusic.src = "i-do-end.mp3"; 
             bgMusic.play().catch(e => console.log("Không thể tự phát nhạc mới"));
 
             if (mode !== 'loveRain') {
